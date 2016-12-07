@@ -16,7 +16,7 @@ from xml.etree import cElementTree as ElementTree
 
 def main():
     parser = argparse.ArgumentParser(description='inkscape_split')
-    parser.add_argument('input-file', help='file to split')
+    parser.add_argument('input_file', help='file to split')
     parser.add_argument('--dpi', type=int, default=90, help='DPI for export (default: 90)')
     parser.add_argument('--layers', nargs='*', help='layers to export (default: all layers)')
 
