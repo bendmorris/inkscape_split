@@ -32,6 +32,10 @@ def main():
     input_name = '.'.join(os.path.basename(input_file).split('.')[:-1])
 
     output_file = input_file.replace('.svg', '_all.svg')
+    last_root = None
+    if os.path.exists(output_file):
+        last_root = ElementTree.parse(output_file).getroot()
+        last_mtime = os.path.getmtime(output_file)
     with open(input_file) as input:
         with open(output_file, 'w') as output:
             output.write(input.read().replace('style="display:none"', ''))
@@ -39,16 +43,32 @@ def main():
     doc = ElementTree.parse(input_file)
     root = doc.getroot()
     for child in root:
-        if '%sgroupmode' % inkscape in child.attrib and child.attrib['%sgroupmode' % inkscape] == 'layer':
-            name = child.attrib['%slabel' % inkscape]
+        if '{}groupmode'.format(inkscape) in child.attrib and child.attrib['{}groupmode'.format(inkscape)] == 'layer':
+            name = child.attrib['{}label'.format(inkscape)]
             if (not layers) or (name in layers):
                 layer_id = child.attrib['id']
-                output_file = os.path.join(input_dir, '%s_%s.png' % (input_name, name.replace(' ', '_')))
-                print output_file        
-            
-                cmd = ('inkscape --without-gui --export-id=%s --export-id-only --export-png=%s --export-dpi=%s %s' % 
-                       (layer_id, output_file, dpi, input_file))
-                print cmd
+                output_file = os.path.join(input_dir, '{}_{}.png'.format(input_name, name.replace(' ', '_')))
+
+                if last_root and os.path.exists(output_file) and os.path.getmtime(output_file) >= last_mtime:
+                    s = ''.join(map(ElementTree.tostring, (c for c in child)))
+                    # print(s)
+                    found = False
+                    for child2 in last_root:
+                        s2 = ''.join(map(ElementTree.tostring, (c for c in child2)))
+                        if s == s2:
+                            print('  ... skipping {} which is up to date  ...'.format(output_file))
+                            os.utime(output_file, None)
+                            found = True
+                            break
+                    if found:
+                        continue
+
+                print(output_file)
+
+                cmd = 'inkscape --without-gui --export-id={} --export-id-only --export-png={} --export-dpi={} {}'.format(
+                    layer_id, output_file, dpi, input_file
+                )
+                print(cmd)
                 subprocess.call(cmd.split())
 
 
